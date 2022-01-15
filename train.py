@@ -41,6 +41,11 @@ def data_sampler(dataset, shuffle, distributed):
     else:
         return data.SequentialSampler(dataset)
 
+        
+def compute_total_params(model):
+    total_params = sum([np.prod(p.shape) for p in model.parameters() if p.requires_grad])
+    return total_params
+
 
 def requires_grad(model, flag=True):
     for p in model.parameters():
@@ -349,7 +354,7 @@ if __name__ == "__main__":
         help="number of the samples generated during training",
     )
     parser.add_argument(
-        "--size", type=int, default=256, help="image sizes for the model"
+        "--size", type=int, default=64, help="image sizes for the model"
     )
     parser.add_argument(
         "--r1", type=float, default=10, help="weight of the r1 regularization"
@@ -438,8 +443,8 @@ if __name__ == "__main__":
         torch.distributed.init_process_group(backend="nccl", init_method="env://")
         synchronize()
 
-    args.latent = 512
-    args.n_mlp = 8
+    args.latent = 64
+    args.n_mlp = 2
 
     args.start_iter = 0
 
@@ -474,6 +479,8 @@ if __name__ == "__main__":
         lr=args.lr * d_reg_ratio,
         betas=(0 ** d_reg_ratio, 0.99 ** d_reg_ratio),
     )
+    print('generator params:', compute_total_params(generator))
+    print('discriminator params:', compute_total_params(discriminator))
 
     if args.ckpt is not None:
         print("load model:", args.ckpt)
