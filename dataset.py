@@ -51,7 +51,7 @@ class HDF5Dataset(Dataset):
         img = self._images[idx] # HWC in {0, ..., 255}
         img = torch.FloatTensor(img) / 255.
         img = 2 * img - 1
-        return img
+        return img.movedim(-1, 0)
 
 
 class MultiResolutionDataset(Dataset):
