@@ -5,6 +5,68 @@ import lmdb
 from PIL import Image
 from torch.utils.data import Dataset
 import h5py
+import json
+import os.path as osp
+import warnings
+import math
+import pickle
+from torchvision.datasets.video_utils import VideoClips
+import torch.nn.functional as F
+
+
+def preprocess(video, resolution):
+    # video: THWC, {0, ..., 255}
+    video = video.permute(0, 3, 1, 2).float() # TCHW
+    t, c, h, w = video.shape
+
+    # scale shorter side to resolution
+    scale = resolution / min(h, w)
+    if h < w:
+        target_size = (resolution, math.ceil(w * scale))
+    else:
+        target_size = (math.ceil(h * scale), resolution)
+    video = F.interpolate(video, size=target_size, mode='bilinear',
+                          align_corners=False)
+    
+    scale = tuple([t / r for t, r in zip(target_size, (h, w))])
+
+    # center crop
+    t, c, h, w = video.shape
+    w_start = (w - resolution) // 2
+    h_start = (h - resolution) // 2
+    video = video[:, :, h_start:h_start + resolution, w_start:w_start + resolution]
+
+    video = 2 * (video / 255.) - 1
+    return video
+
+
+class SomethingSomething(Dataset):
+    def __init__(self, path, transform, resolution=256):
+        super().__init__()
+        self.resolution = resolution
+
+        self.root = path
+        video_ids = json.load(open(osp.join(self.root, 'train_subset.json'), 'r'))
+        to_exclude = json.load(open(osp.join(self.root, 'exclude.json'), 'r'))
+        to_exclude = set(to_exclude)
+        video_ids = list(filter(lambda vid: vid not in to_exclude, video_ids))
+
+        files = [osp.join(self.root, '20bn-something-something-v2', f'{vid}.webm')
+                 for vid in video_ids]
+        
+        warnings.filterwarnings('ignore')
+        cache_file = osp.join(self.root, 'train_metadata_4.pkl')
+        metadata = pickle.load(open(cache_file, 'rb'))
+        clips = VideoClips(files, 4, _precomputed_metadata=metadata)
+        self._clips = clips
+    
+    def __len__(self):
+        return self._clips.num_clips()
+    
+    def __getitem__(self, idx):
+        video = self._clips.get_clip(idx)[0]
+        video = preprocess(video)
+        return video
 
 
 class HDF5Dataset(Dataset):

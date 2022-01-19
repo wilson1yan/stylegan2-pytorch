@@ -19,7 +19,7 @@ except ImportError:
     wandb = None
 
 
-from dataset import MultiResolutionDataset, HDF5Dataset
+from dataset import MultiResolutionDataset, HDF5Dataset, SomethingSomething
 from distributed import (
     get_rank,
     synchronize,
@@ -30,6 +30,8 @@ from distributed import (
 from op import conv2d_gradfix
 from non_leaking import augment, AdaptiveAugment
 
+
+SEQ = 4 
 
 def data_sampler(dataset, shuffle, distributed):
     if distributed:
@@ -172,12 +174,13 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, devic
             break
 
         real_img = next(loader)
+        real_img = real_img.flatten(end_dim=1)
         real_img = real_img.to(device)
 
         requires_grad(generator, False)
         requires_grad(discriminator, True)
 
-        noise = mixing_noise(args.batch, args.latent, args.mixing, device)
+        noise = mixing_noise(args.batch * SEQ, args.latent, args.mixing, device)
         fake_img, _ = generator(noise)
 
         if args.augment:
@@ -227,7 +230,7 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, devic
         requires_grad(generator, True)
         requires_grad(discriminator, False)
 
-        noise = mixing_noise(args.batch, args.latent, args.mixing, device)
+        noise = mixing_noise(args.batch * SEQ, args.latent, args.mixing, device)
         fake_img, _ = generator(noise)
 
         if args.augment:
@@ -245,7 +248,7 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, devic
         g_regularize = i % args.g_reg_every == 0
 
         if g_regularize:
-            path_batch_size = max(1, args.batch // args.path_batch_shrink)
+            path_batch_size = max(1, args.batch * SEQ // args.path_batch_shrink)
             noise = mixing_noise(path_batch_size, args.latent, args.mixing, device)
             fake_img, latents = generator(noise, return_latents=True)
 
@@ -524,7 +527,8 @@ if __name__ == "__main__":
         ]
     )
 
-    dataset = HDF5Dataset(args.path, transform, args.size)
+    # dataset = HDF5Dataset(args.path, transform, args.size)
+    dataset = SomethingSomething(args.path, transform, args.size)
     loader = data.DataLoader(
         dataset,
         batch_size=args.batch,
