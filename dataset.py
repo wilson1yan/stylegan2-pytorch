@@ -65,7 +65,7 @@ class SomethingSomething(Dataset):
     
     def __getitem__(self, idx):
         video = self._clips.get_clip(idx)[0]
-        video = preprocess(video)
+        video = preprocess(video, self.resolution)
         return video
 
 
