@@ -343,12 +343,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="StyleGAN2 trainer")
 
     parser.add_argument("path", type=str, help="path to the lmdb dataset")
+
+    parser.add_argument('--n_conv', type=int, default=1)
+    parser.add_argument('--n_res', type=int, default=1)
+
     parser.add_argument('--arch', type=str, default='stylegan2', help='model architectures (stylegan2 | swagan)')
     parser.add_argument(
         "--iter", type=int, default=800000, help="total training iterations"
     )
     parser.add_argument(
-        "--batch", type=int, default=16, help="batch sizes for each gpus"
+        "--batch", type=int, default=2, help="batch sizes for each gpus"
     )
     parser.add_argument(
         "--n_sample",
@@ -446,8 +450,8 @@ if __name__ == "__main__":
         torch.distributed.init_process_group(backend="nccl", init_method="env://")
         synchronize()
 
-    args.latent = 64
-    args.n_mlp = 2
+    args.latent = 512
+    args.n_mlp = 8
 
     args.start_iter = 0
 
@@ -458,13 +462,13 @@ if __name__ == "__main__":
         from swagan import Generator, Discriminator
 
     generator = Generator(
-        args.size, args.latent, args.n_mlp, channel_multiplier=args.channel_multiplier
+        args.size, args.latent, args.n_mlp, channel_multiplier=args.channel_multiplier, n_conv=args.n_conv
     ).to(device)
     discriminator = Discriminator(
-        args.size, channel_multiplier=args.channel_multiplier
+        args.size, channel_multiplier=args.channel_multiplier, n_res=args.n_res
     ).to(device)
     g_ema = Generator(
-        args.size, args.latent, args.n_mlp, channel_multiplier=args.channel_multiplier
+        args.size, args.latent, args.n_mlp, channel_multiplier=args.channel_multiplier, n_conv=args.n_conv
     ).to(device)
     g_ema.eval()
     accumulate(g_ema, generator, 0)
