@@ -57,7 +57,7 @@ class SomethingSomething(Dataset):
         warnings.filterwarnings('ignore')
         cache_file = osp.join(self.root, 'train_metadata_4.pkl')
         metadata = pickle.load(open(cache_file, 'rb'))
-        clips = VideoClips(files, 4, _precomputed_metadata=metadata)
+        clips = VideoClips(files, 1, _precomputed_metadata=metadata)
         self._clips = clips
     
     def __len__(self):
@@ -66,7 +66,7 @@ class SomethingSomething(Dataset):
     def __getitem__(self, idx):
         video = self._clips.get_clip(idx)[0]
         video = preprocess(video, self.resolution)
-        return video
+        return video[0]
 
 
 class HDF5Dataset(Dataset):

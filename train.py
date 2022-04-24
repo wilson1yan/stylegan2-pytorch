@@ -31,7 +31,7 @@ from op import conv2d_gradfix
 from non_leaking import augment, AdaptiveAugment
 
 
-SEQ = 4 
+SEQ = 1
 
 def data_sampler(dataset, shuffle, distributed):
     if distributed:
@@ -174,7 +174,6 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, g_ema, devic
             break
 
         real_img = next(loader)
-        real_img = real_img.flatten(end_dim=1)
         real_img = real_img.to(device)
 
         requires_grad(generator, False)
@@ -352,7 +351,7 @@ if __name__ == "__main__":
         "--iter", type=int, default=800000, help="total training iterations"
     )
     parser.add_argument(
-        "--batch", type=int, default=2, help="batch sizes for each gpus"
+        "--batch", type=int, default=16, help="batch sizes for each gpus"
     )
     parser.add_argument(
         "--n_sample",
@@ -450,8 +449,8 @@ if __name__ == "__main__":
         torch.distributed.init_process_group(backend="nccl", init_method="env://")
         synchronize()
 
-    args.latent = 512
-    args.n_mlp = 8
+    args.latent = 64
+    args.n_mlp = 2
 
     args.start_iter = 0
 
@@ -531,11 +530,12 @@ if __name__ == "__main__":
         ]
     )
 
-    # dataset = HDF5Dataset(args.path, transform, args.size)
-    dataset = SomethingSomething(args.path, transform, args.size)
+    dataset = HDF5Dataset(args.path, transform, args.size)
+#    dataset = SomethingSomething(args.path, transform, args.size)
     loader = data.DataLoader(
         dataset,
         batch_size=args.batch,
+        num_workers=4,
         sampler=data_sampler(dataset, shuffle=True, distributed=args.distributed),
         drop_last=True,
     )
